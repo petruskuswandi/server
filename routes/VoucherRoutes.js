@@ -171,6 +171,16 @@ router.get("/:code", async (req, res) => {
 // Update a voucher
 router.patch("/:id", authenticate(["admin"]), async (req, res) => {
   try {
+    const updateData = { ...req.body };
+
+    // Convert startDate and endDate to Date objects if they exist in the request body
+    if (updateData.startDate) {
+      updateData.startDate = new Date(updateData.startDate);
+    }
+    if (updateData.endDate) {
+      updateData.endDate = new Date(updateData.endDate);
+    }
+
     const updatedVoucher = await Voucher.findByIdAndUpdate(
       req.params.id,
       req.body,

@@ -35,12 +35,22 @@ const voucherSchema = new Schema(
     startDate: {
       type: Date,
       required: true,
-      set: (v) => new Date(v.getTime() + jakartaOffset),
+      set: (v) => {
+        if (v instanceof Date) {
+          return new Date(v.getTime() + jakartaOffset);
+        }
+        return new Date(new Date(v).getTime() + jakartaOffset);
+      },
     },
     endDate: {
       type: Date,
       required: true,
-      set: (v) => new Date(v.getTime() + jakartaOffset),
+      set: (v) => {
+        if (v instanceof Date) {
+          return new Date(v.getTime() + jakartaOffset);
+        }
+        return new Date(new Date(v).getTime() + jakartaOffset);
+      },
     },
     usageLimit: {
       type: Number,

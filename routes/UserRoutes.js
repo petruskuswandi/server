@@ -119,22 +119,31 @@ router.put(
   async (req, res) => {
     try {
       const id = req.user._id;
+      const currentUser = await User.findById(id);
+
+      if (!currentUser) {
+        return res.status(404).json({ error: "User tidak ditemukan" });
+      }
 
       // Validasi nomor telepon
-      if (req.body.phone) {
+      if (req.body.phone && req.body.phone !== currentUser.phone) {
+        if (typeof req.body.phone !== "string") {
+          return res.status(400).json({
+            error: "Nomor telepon harus berupa string",
+          });
+        }
+
         const phoneLength = req.body.phone.replace(/\D/g, "").length; // Menghapus karakter non-digit
         if (phoneLength < 10 || phoneLength > 13) {
-          return res
-            .status(400)
-            .json({
-              error: "Nomor telepon harus terdiri dari 10 hingga 13 digit",
-            });
+          return res.status(400).json({
+            error: "Nomor telepon harus terdiri dari 10 hingga 13 digit",
+          });
         }
 
         // Memeriksa apakah nomor telepon sudah digunakan oleh pengguna lain
         const existingUser = await User.findOne({
           phone: req.body.phone,
-          _id: { $ne: id }, // Mengecualikan user saat ini
+          _id: { $ne: id },
         });
 
         if (existingUser) {
@@ -144,16 +153,14 @@ router.put(
         }
       }
 
-      const user = await User.findByIdAndUpdate(id, req.body, {
+      const updatedUser = await User.findByIdAndUpdate(id, req.body, {
         new: true,
         runValidators: true,
       });
 
-      if (!user) {
-        return res.status(404).json({ error: "User tidak ditemukan" });
-      }
-
-      res.status(200).json({ message: "Profil berhasil diperbarui!", user });
+      res
+        .status(200)
+        .json({ message: "Profil berhasil diperbarui!", user: updatedUser });
     } catch (error) {
       console.log(error);
       if (error.name === "ValidationError") {

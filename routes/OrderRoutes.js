@@ -247,7 +247,6 @@ router.post("/create-from-cart", authenticate(["user"]), async (req, res) => {
       order: newOrder,
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -276,7 +275,6 @@ router.get("/my-orders", authenticate(["user"]), async (req, res) => {
 
     res.status(200).json({ orders });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
