@@ -18,7 +18,7 @@ router.get(
 
 router.get(
   "/google/laundry",
-  passport.authenticate("google", { failureRedirect: `${process.env.DOMAIN}` }),
+  passport.authenticate("google", { failureRedirect: "/" }),
   async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ message: "You're not authenticated!" });

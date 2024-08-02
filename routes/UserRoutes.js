@@ -37,65 +37,76 @@ function generateToken(user) {
 // Register
 router.post("/register", async (req, res) => {
   try {
-    if (req.body.password.length < 8) {
+    const { name, username, password, phone } = req.body;
+    if (password.length < 8) {
       return res
         .status(400)
         .json({ message: "Password harus minimal 8 karakter" });
     }
 
-    const existingUser = await User.findOne({ username: req.body.username });
+    const existingUser = await User.findOne({ username });
     if (existingUser) {
       return res.status(400).json({ message: "Email sudah terdaftar" });
     }
 
-    User.register(
-      {
-        name: req.body.name,
-        username: req.body.username,
-        phone: req.body.phone,
-        googleId: "",
-      },
-      req.body.password,
-      (err, user) => {
-        if (err) {
-          return res.status(500).json({ error: err.message });
-        } else {
-          const token = generateToken(user);
-
-          return res
-            .status(200)
-            .cookie("token", token)
-            .json({ isRegister: true });
-        }
+    if (phone) {
+      if (typeof req.body.phone !== "string") {
+        return res.status(400).json({
+          error: "Nomor telepon harus berupa string",
+        });
       }
-    );
+
+      const phoneLength = phone.replace(/\D/g, "").length; // Menghapus karakter non-digit
+      if (phoneLength < 10 || phoneLength > 13) {
+        return res.status(400).json({
+          error: "Nomor telepon harus terdiri dari 10 hingga 13 digit",
+        });
+      }
+
+      // Memeriksa apakah nomor telepon sudah digunakan oleh pengguna lain
+      const existingUser = await User.findOne({ phone });
+      if (existingUser) {
+        return res.status(400).json({ error: "Nomor telepon sudah digunakan" });
+      }
+    }
+
+    const newUser = new User({ name, username, phone, googleId: "" });
+    const registeredUser = await User.register(newUser, password);
+
+    const token = generateToken(registeredUser);
+    res.status(201).cookie("token", token).json({ isRegister: true });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ error: error.message });
   }
 });
 
 // Login
-router.post("/login", async (req, res) => {
+router.post("/login", async (req, res, next) => {
   try {
     passport.authenticate("local", (err, user) => {
       if (err) {
         return res.status(500).json({ error: err.message });
-      } else if (!user) {
-        return res.status(404).json({ error: "Wrong, Username or password!" });
-      } else {
-        req.login(user, function (error) {
-          if (error) {
-            return res.status(500).json({ error: error.message });
-          }
-          const token = generateToken(user);
-
-          return res
-            .status(200)
-            .cookie("token", token)
-            .json({ isLogin: true, user, message: "Success Login!" });
-        });
       }
-    })(req, res);
+      if (!user) {
+        return res.status(404).json({ error: "Wrong, Username or password!" });
+      }
+      req.login(user, (error) => {
+        if (error) {
+          return res.status(500).json({ error: error.message });
+        }
+        const token = generateToken(user);
+
+        return res
+          .status(200)
+          .cookie("token", token)
+          .json({
+            isLogin: true,
+            user: { id: user._id, username: user.username, name: user.name },
+            message: "Success Login!",
+          });
+      });
+    })(req, res, next);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
