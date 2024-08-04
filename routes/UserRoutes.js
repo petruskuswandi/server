@@ -75,8 +75,7 @@ router.post("/register", async (req, res) => {
 
     const token = generateToken(registeredUser);
     res.status(201).cookie("token", token).json({ isRegister: true });
-  } catch (error) {
-    console.log(error);
+  } catch (error) {   
     return res.status(500).json({ error: error.message });
   }
 });
@@ -173,7 +172,6 @@ router.put(
         .status(200)
         .json({ message: "Profil berhasil diperbarui!", user: updatedUser });
     } catch (error) {
-      console.log(error);
       if (error.name === "ValidationError") {
         return res.status(400).json({ error: error.message });
       }
