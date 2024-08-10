@@ -8,6 +8,7 @@ const storeSchema = new Schema(
     province: { type: String },
     city: { type: String },
     address: { type: String },
+    phone: {type: String},
     sliders: [
       {
         link: { type: String },

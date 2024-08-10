@@ -28,6 +28,23 @@ const orderStorage = multer.diskStorage({
 
 const uploadImg = multer({ storage: orderStorage }).array("images", 10);
 
+const paymentReceiptStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "upload/payment_receipts");
+  },
+  filename: (req, file, cb) => {
+    cb(
+      null,
+      path.parse(file.originalname).name +
+        "-" +
+        Date.now() +
+        path.extname(file.originalname)
+    );
+  },
+});
+
+const uploadPaymentReceipt = multer({ storage: paymentReceiptStorage }).array("paymentReceipt", 5);
+
 router.post("/create", authenticate(["user"]), async (req, res) => {
   try {
     // Validasi jam operasional
@@ -523,6 +540,49 @@ router.post(
     }
   }
 );
+
+router.post("/:orderId/upload-payment-receipt", authenticate(["user"]), uploadPaymentReceipt, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const order = await Order.findOne({ orderId: orderId });
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Check if the authenticated user is the owner of the order
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: "Not authorized to upload payment receipt for this order" });
+    }
+
+    let paymentReceipts = [];
+    if (req.files && req.files.length > 0) {
+      paymentReceipts = req.files.map((file) => ({
+        link: process.env.SERVER + "/payment_receipts/" + file.filename,
+      }));
+    } else {
+      return res.status(400).json({ error: "No files uploaded" });
+    }
+
+    order.uploadPaymentReceipt = paymentReceipts;
+    order.paymentStatus = "pending"; // Set to pending for admin review
+    await order.save();
+
+    // Create a notification for admins
+    const admins = await User.find({ role: "admin" });
+    await Notification.create({
+      type: "payment_receipt_uploaded",
+      message: `Payment receipt uploaded for order ${order.orderId}`,
+      recipients: admins.map((admin) => ({ user: admin._id })),
+      relatedOrder: order._id,
+    });
+
+    res.status(200).json({ message: "Payment receipt uploaded successfully", order });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 router.patch(
   "/:orderId/delivery",

@@ -25,18 +25,29 @@ const uploadImg = multer({ storage: imageStorage });
 
 const storeId = "669766675185121144e5d223";
 
+const validatePhoneNumber = (phone) => {
+  const cleanPhone = phone.replace(/\D/g, '');
+  
+  if (cleanPhone.length <= 10 || cleanPhone.length > 13) {
+    return false;
+  }
+  
+  const phoneRegex = /^((\+62|62)|0)[8]{1}[1-9]{1}\d{7,13}$/;
+  return phoneRegex.test(cleanPhone);
+}
+
 router.get("/get-data", async (req, res) => {
   try {
     let data = await Store.findById(storeId);
 
     if (!data) {
-      // Membuat data default dengan slider yang memiliki title dan description
       data = new Store({
         _id: storeId,
         name: "Default Store Name",
         province: "9",
         city: "108",
         address: "Default Address",
+        phone: "Default Number",
         sliders: [
           {
             link: "Default Link",
@@ -64,12 +75,21 @@ router.put(
   ]),
   async (req, res) => {
     try {
-      const { name, province, city, address } = req.body;
+      const { name, province, city, address, phone } = req.body;
+
+      if (!phone) {
+        return res.status(400).json({ message: "Nomor telepon wajib diisi" });
+      }
+      if (!validatePhoneNumber(phone)) {
+        return res.status(400).json({ message: "Nomor telepon tidak valid. Pastikan nomor telepon memiliki panjang lebih dari 10 digit dan maksimal 13 digit, serta merupakan nomor telepon Indonesia yang valid." });
+      }
+
       const updateData = {
         name,
         province,
         city,
         address,
+        phone,
       };
 
       if (req.files["logo"]) {

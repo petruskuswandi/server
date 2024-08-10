@@ -131,7 +131,7 @@ router.post("/create", authenticate(["admin"]), async (req, res) => {
 });
 
 // Get all vouchers 
-router.get("/", authenticate(["admin"]), async (req, res) => {
+router.get("/", authenticate(["admin", "user"]), async (req, res) => {
   try {
     const vouchers = await Voucher.find()
       .sort({ createdAt: -1 })

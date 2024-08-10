@@ -50,6 +50,7 @@ const orderSchema = new Schema(
       enum: ["pending", "settlement", "failed", "expired"],
       default: "pending",
     },
+    uploadPaymentReceipt: [{ link: { type: String } }],
     orderStatus: {
       type: String,
       enum: [
